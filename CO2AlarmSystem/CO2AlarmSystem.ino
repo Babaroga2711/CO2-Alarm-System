@@ -46,10 +46,10 @@ SimpleTimer timer;
 int timerId = -1;
 int lastCO2Threshold = -2;
 
-String WIFI_SSID = "WIFI_NAME"; // Wi-Fi to connect to
-String WIFI_PASS = "WIFI_PASSWORD"; // Wi-Fi password to access desired network
+String WIFI_SSID = "Scream for password"; // Wi-Fi to connect to
+String WIFI_PASS = "lovromajtan123"; // Wi-Fi password to access desired network
 String HOST = "api.thingspeak.com";
-String API = "API_KEY"; // ThingSpeak API key used to send updates to correct database
+String API = "HDD23JAOC8QE9J84"; // ThingSpeak API key used to send updates to correct database
 String PORT = "80"; // HTTP port
 int countTrueCommand; // to keep track of successfully issued commands to ESP8266 in serial monitor
 boolean found = false; // to check if there is a response while issuing command to ESP8266   
@@ -95,7 +95,6 @@ static bool measureEnvironment(float *temperature, float *humidity)
 
   return false;
 }
-
 
 // main program loop
 void loop()
@@ -161,13 +160,6 @@ void loop()
         currentCO2Threshold = 5;
         ledBlink(co2_sensor.ppm);
       }
-
-      // update issues to ThingSpeak every 15 seconds after CO2 is above 2,500
-      if(millis() - lastSendTime >= sendInterval)
-      {
-        sendToThingSpeak(temperature, humidity, co2_sensor.ppm);
-        lastSendTime = millis();
-      }
     }
 
     // buzzer system logic
@@ -180,7 +172,8 @@ void loop()
           timerId = -1;
         }
 
-        // buzzer sound every time CO2 threshold changes immediately to help with delay caused by using timer object
+        // buzzer sound every time CO2 threshold changes immediately 
+        // to help with delay caused by using timer object
         buzzerManager();
 
         switch(currentCO2Threshold)
@@ -198,7 +191,8 @@ void loop()
             timerId = timer.setInterval(1000, buzzerManager);
             break;
         }
-        lastCO2Threshold = currentCO2Threshold; // prevents timer being reset over and over during same CO2 threshold
+        // prevents timer being reset over and over during same CO2 threshold
+        lastCO2Threshold = currentCO2Threshold; 
       }
   }
   // if the functions return true, then measurements are available
@@ -213,6 +207,16 @@ void loop()
     lcd.print(" H = ");
     lcd.print(humidity, 0);
     lcd.print("%");
+
+    if(co2Level > 2500)
+    {
+      // update issues to ThingSpeak every 15 seconds after CO2 is above 2,500
+      if(millis() - lastSendTime >= sendInterval)
+      {
+        sendToThingSpeak(temperature, humidity, co2_sensor.ppm);
+        lastSendTime = millis();
+      } 
+    }
   }
 }
 
@@ -251,7 +255,9 @@ void ledBlink(int co2Level)
     if(ledOn)
     {
       // if CO2 is above 30,000ppm LED blinks red, else LED blinks orange
-      if(co2Level >=30000 || co2Level <= 0) // handling for if co2Level variable goes into negative values due to how sensor reacts when exposed to over 50,000ppm of CO2
+      // if statement handles co2Level variable going into negative 
+      //values due to how sensor reacts when exposed to over 50,000ppm of CO2
+      if(co2Level >=30000 || co2Level <= 0) 
       {
         analogWrite(RED, 255);
         analogWrite(GREEN, 0);
@@ -276,9 +282,12 @@ void ledBlink(int co2Level)
 // method used in setup to connect ESP8266 to chosen Wi-Fi:
 void connectToWiFi()
 {
-  sendCommand("AT", 2000, "OK"); // checks that communication with ESP8266 works
-  sendCommand("AT+CWMODE=1", 2000, "OK"); // sets ESP8266 into mode for connection with available access points
-  sendCommand("AT+CWJAP=\""+ WIFI_SSID +"\",\""+ WIFI_PASS +"\"",10000,"OK"); // attempts connection with chosen access point
+  // checks that communication with ESP8266 works
+  sendCommand("AT", 2000, "OK");
+  // sets ESP8266 into mode for connection with available access points
+  sendCommand("AT+CWMODE=1", 2000, "OK");
+  // attempts connection with chosen access point
+  sendCommand("AT+CWJAP=\""+ WIFI_SSID +"\",\""+ WIFI_PASS +"\"",10000,"OK");
 }
 
 // method to send data to chosen ThingSpeak database:
@@ -288,11 +297,16 @@ void sendToThingSpeak(float temperature, float humidity, int co2)
   String request = "GET /update?api_key=" + API + "&field1=" + String(temperature) + 
   "&field2=" + String(humidity)  + "&field3=" + String(co2) + "\r\n"; 
 
-  sendCommand("AT+CIPSTART=\"TCP\",\"" + HOST + "\"," + PORT, 4000, "OK"); // opens TCP connection with ThingSpeak server on port 80 for HTTP
-  sendCommand("AT+CIPSEND=" + String(request.length() + 2), 2000, ">"); // bytes to be sent, lenght of request plus 2 for carriage return and line feed
-  esp8266.print(request); // ESP8266 sends HTTP GET request to to ThingSpeak
-  delay(1500); // 1.5 second delay allows ThingSpeak server to process request
-  sendCommand("AT+CIPCLOSE", 2000, "OK"); // close TCP connection to server after data is sent
+  // opens TCP connection with ThingSpeak server on port 80 for HTTP
+  sendCommand("AT+CIPSTART=\"TCP\",\"" + HOST + "\"," + PORT, 4000, "OK");
+  // bytes to be sent, lenght of request plus 2 for carriage return and line feed
+  sendCommand("AT+CIPSEND=" + String(request.length() + 2), 2000, ">");
+  // ESP8266 sends HTTP GET request to to ThingSpeak
+  esp8266.print(request);
+  // 1.5 second delay allows ThingSpeak server to process request
+  delay(1500);
+  // close TCP connection to server after data is sent
+  sendCommand("AT+CIPCLOSE", 2000, "OK");
 }
 
 /* 
